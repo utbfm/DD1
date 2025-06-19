@@ -58,7 +58,7 @@
     <div id="map"></div>
     <div id="footer">© 2025 EL DENIS.</div>
     <script>
-        // Initialiser la carte avec les coordonnées fournies
+        // Initialiser la carte avec des coordonnées par défaut
         var map = L.map('map').setView([43.52805141065833, 3.9233119436189265], 13);
         // Ajouter les tuiles OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -73,7 +73,13 @@
             if (marker) {
                 marker.setLatLng(coords);
             } else {
-                marker = L.marker(coords, { icon: L.icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png', iconSize: [25, 41], iconAnchor: [12, 41] }) }).addTo(map);
+                marker = L.marker(coords, {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41]
+                    })
+                }).addTo(map);
             }
             map.panTo(coords);
         }
@@ -91,8 +97,8 @@
                     throw new Error('No data available in the CSV');
                 }
                 const lastLine = lines[lines.length - 1].split(',');
-                const lat = parseFloat(lastLine[5]); // Assurez-vous que l'index est correct
-                const lon = parseFloat(lastLine[4]); // Assurez-vous que l'index est correct
+                const lat = parseFloat(lastLine[4]); // Latitude
+                const lon = parseFloat(lastLine[5]); // Longitude
                 if (!isNaN(lat) && !isNaN(lon)) {
                     updateMarker(lat, lon);
                 } else {
