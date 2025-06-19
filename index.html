@@ -86,7 +86,8 @@
         // Fonction pour récupérer les données GPS depuis le Google Sheet CSV
         async function fetchGPSData() {
             try {
-                const sheetUrl = 'https://docs.google.com/spreadsheets/d/1MNl5nI4z15ntw7BmtMdAKm5VgD5phY1iVWgvVBZjE1w/export?format=csv&gid=1505607008';               
+                const sheetUrl = 'https://docs.google.com/spreadsheets/d/1xeSWq6sbovDTeI8z0vh1rECMWoNwLBJNcYWf9-fitSM/export?format=csv&gid=1249295767'; 
+                
                 const response = await fetch(sheetUrl);
                 if (!response.ok) {
                     throw new Error(`HTTP error: ${response.status}`);
