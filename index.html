@@ -49,6 +49,11 @@
             text-align: right;
             z-index: 1000;
         }
+        .bus-label {
+            color: black;
+            font-weight: bold;
+            text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
+        }
     </style>
     <!-- Script Leaflet -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -64,18 +69,21 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
+
         // Marqueur (initialement nul)
         var marker = null;
+
         // Mettre à jour ou créer le marqueur
-        function updateMarker(lat, lon) {
-            console.log('updateMarker appelé avec:', lat, lon);
+        function updateMarker(lat, lon, busNumber) {
+            console.log('updateMarker appelé avec:', lat, lon, busNumber);
             const coords = [lat, lon];
             if (marker) {
                 marker.setLatLng(coords);
             } else {
                 marker = L.marker(coords, {
-                    icon: L.icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                    icon: L.divIcon({
+                        className: 'bus-icon',
+                        html: `<div style="position: relative; text-align: center;"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png" style="width: 25px; height: 41px;"><span class="bus-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">${busNumber}</span></div>`,
                         iconSize: [25, 41],
                         iconAnchor: [12, 41]
                     })
@@ -83,11 +91,12 @@
             }
             map.panTo(coords);
         }
+
         // Fonction pour récupérer les données GPS depuis le Google Sheet CSV
         async function fetchGPSData() {
             try {
-                const sheetUrl = 'https://docs.google.com/spreadsheets/d/1xeSWq6sbovDTeI8z0vh1rECMWoNwLBJNcYWf9-fitSM/export?format=csv&gid=1249295767'; 
-                
+                const sheetUrl = 'https://docs.google.com/spreadsheets/d/1xeSWq6sbovDTeI8z0vh1rECMWoNwLBJNcYWf9-fitSM/export?format=csv&gid=1249295767';
+
                 const response = await fetch(sheetUrl);
                 if (!response.ok) {
                     throw new Error(`HTTP error: ${response.status}`);
@@ -100,8 +109,10 @@
                 const lastLine = lines[lines.length - 1].split(',');
                 const lat = parseFloat(lastLine[4]); // Latitude
                 const lon = parseFloat(lastLine[5]); // Longitude
+                const busNumber = lastLine[3]; // Numéro de bus, ajustez l'index selon votre CSV
+
                 if (!isNaN(lat) && !isNaN(lon)) {
-                    updateMarker(lat, lon);
+                    updateMarker(lat, lon, busNumber);
                 } else {
                     console.warn('Invalid GPS coordinates:', lastLine);
                 }
@@ -109,6 +120,7 @@
                 console.error('Error fetching GPS coordinates:', err);
             }
         }
+
         // Mise à jour initiale + toutes les 10 secondes
         fetchGPSData();
         setInterval(fetchGPSData, 10000);
