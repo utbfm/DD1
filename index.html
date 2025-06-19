@@ -54,9 +54,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
-    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR</div>
+    <div id="header">SUPERVISIÓN DEL CIRCUITO DEL DENIS</div>
     <div id="map"></div>
-    <div id="footer">© 2025 UTBFM Juárez N.L.</div>
+    <div id="footer">© 2025 EL DENIS.</div>
     <script>
         // Initialiser la carte avec les coordonnées fournies
         var map = L.map('map').setView([43.52805141065833, 3.9233119436189265], 13);
@@ -80,7 +80,7 @@
         // Fonction pour récupérer les données GPS depuis le Google Sheet CSV
         async function fetchGPSData() {
             try {
-                const sheetUrl = 'https://docs.google.com/spreadsheets/d/19ktCE0XtzOt7Kbov5hUXRrA9fVxi2VqBT3M86Agj0GI/export?format=csv&gid=2017613525';
+                const sheetUrl = 'https://docs.google.com/spreadsheets/d/1MNl5nI4z15ntw7BmtMdAKm5VgD5phY1iVWgvVBZjE1w/export?format=csv&gid=1505607008';               
                 const response = await fetch(sheetUrl);
                 if (!response.ok) {
                     throw new Error(`HTTP error: ${response.status}`);
