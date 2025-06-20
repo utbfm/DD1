@@ -65,18 +65,28 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
-
         var markers = {};
 
         function updateMarker(lat, lon, busNumber) {
             const coords = [lat, lon];
+            let markerColor = 'blue'; // Default color
+
+            if (busNumber === '2') {
+                markerColor = 'red';
+            } else if (busNumber === '3') {
+                markerColor = 'green';
+            }
+
             if (markers[busNumber]) {
                 markers[busNumber].setLatLng(coords);
             } else {
                 markers[busNumber] = L.marker(coords, {
                     icon: L.divIcon({
                         className: 'bus-icon',
-                        html: `<div style="position: relative; text-align: center;"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${busNumber === '1' ? 'blue' : 'red'}.png" style="width: 25px; height: 41px;"><span class="bus-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">${busNumber}</span></div>`,
+                        html: `<div style="position: relative; text-align: center;">
+                                <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png" style="width: 25px; height: 41px;">
+                                <span class="bus-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">${busNumber}</span>
+                              </div>`,
                         iconSize: [25, 41],
                         iconAnchor: [12, 41]
                     })
@@ -97,12 +107,10 @@
                 if (lines.length < 2) {
                     throw new Error('No data available in the CSV');
                 }
-
                 lines.slice(1).forEach(line => {
                     const [, , ligne, busNumber, lat, lon] = line.split(',');
                     const latitude = parseFloat(lat);
                     const longitude = parseFloat(lon);
-
                     if (!isNaN(latitude) && !isNaN(longitude)) {
                         updateMarker(latitude, longitude, busNumber);
                     } else {
