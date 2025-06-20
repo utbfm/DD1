@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Carte OpenStreetMap avec point GPS dynamique</title>
-    <!-- Feuille de style Leaflet -->
+    <title>Carte OpenStreetMap avec points GPS dynamiques</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         html, body {
@@ -55,7 +54,6 @@
             text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
         }
     </style>
-    <!-- Script Leaflet -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
@@ -63,27 +61,22 @@
     <div id="map"></div>
     <div id="footer">© 2025 EL DENIS</div>
     <script>
-        // Initialiser la carte avec des coordonnées par défaut
         var map = L.map('map').setView([43.52805141065833, 3.9233119436189265], 20);
-        // Ajouter les tuiles OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Marqueur (initialement nul)
-        var marker = null;
+        var markers = {};
 
-        // Mettre à jour ou créer le marqueur
         function updateMarker(lat, lon, busNumber) {
-            console.log('updateMarker appelé avec:', lat, lon, busNumber);
             const coords = [lat, lon];
-            if (marker) {
-                marker.setLatLng(coords);
+            if (markers[busNumber]) {
+                markers[busNumber].setLatLng(coords);
             } else {
-                marker = L.marker(coords, {
+                markers[busNumber] = L.marker(coords, {
                     icon: L.divIcon({
                         className: 'bus-icon',
-                        html: `<div style="position: relative; text-align: center;"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png" style="width: 25px; height: 41px;"><span class="bus-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">${busNumber}</span></div>`,
+                        html: `<div style="position: relative; text-align: center;"><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${busNumber === '1' ? 'blue' : 'red'}.png" style="width: 25px; height: 41px;"><span class="bus-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">${busNumber}</span></div>`,
                         iconSize: [25, 41],
                         iconAnchor: [12, 41]
                     })
@@ -92,7 +85,6 @@
             map.panTo(coords);
         }
 
-        // Fonction pour récupérer les données GPS depuis le Google Sheet CSV
         async function fetchGPSData() {
             try {
                 const sheetUrl = 'https://docs.google.com/spreadsheets/d/1xeSWq6sbovDTeI8z0vh1rECMWoNwLBJNcYWf9-fitSM/export?format=csv&gid=40563606';
@@ -105,22 +97,23 @@
                 if (lines.length < 2) {
                     throw new Error('No data available in the CSV');
                 }
-                const lastLine = lines[lines.length - 1].split(',');
-                const lat = parseFloat(lastLine[4]); // Latitude
-                const lon = parseFloat(lastLine[5]); // Longitude
-                const busNumber = lastLine[3]; // Numéro de bus, ajustez l'index selon votre CSV
 
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    updateMarker(lat, lon, busNumber);
-                } else {
-                    console.warn('Invalid GPS coordinates:', lastLine);
-                }
+                lines.slice(1).forEach(line => {
+                    const [, , ligne, busNumber, lat, lon] = line.split(',');
+                    const latitude = parseFloat(lat);
+                    const longitude = parseFloat(lon);
+
+                    if (!isNaN(latitude) && !isNaN(longitude)) {
+                        updateMarker(latitude, longitude, busNumber);
+                    } else {
+                        console.warn('Invalid GPS coordinates:', line);
+                    }
+                });
             } catch (err) {
                 console.error('Error fetching GPS coordinates:', err);
             }
         }
 
-        // Mise à jour initiale + toutes les 10 secondes
         fetchGPSData();
         setInterval(fetchGPSData, 10000);
     </script>
