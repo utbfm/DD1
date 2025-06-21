@@ -53,7 +53,7 @@
             font-weight: bold;
             text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
         }
-    </style> 
+    </style>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
@@ -71,10 +71,34 @@
             const coords = [lat, lon];
             let markerColor = 'blue'; // Default color
 
-            if (busNumber === '2') {
-                markerColor = 'red';
-            } else if (busNumber === '3') {
-                markerColor = 'green';
+            // Assign colors based on bus number
+            switch(busNumber) {
+                case '1':
+                    markerColor = 'blue';
+                    break;
+                case '2':
+                    markerColor = 'red';
+                    break;
+                case '3':
+                    markerColor = 'green';
+                    break;
+                case '4':
+                    markerColor = 'purple';
+                    break;
+                case '5':
+                    markerColor = 'orange';
+                    break;
+                case '6':
+                    markerColor = 'darkred';
+                    break;
+                case '7':
+                    markerColor = 'pink';
+                    break;
+                case '8':
+                    markerColor = 'yellow';
+                    break;
+                default:
+                    markerColor = 'blue';
             }
 
             if (markers[busNumber]) {
