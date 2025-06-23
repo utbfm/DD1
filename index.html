@@ -62,11 +62,6 @@
             text-align: right;
             z-index: 1000;
         }
-        .bus-label {
-            color: black;
-            font-weight: bold;
-            text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
-        }
         .school-label {
             color: black;
             text-shadow: 0 0 3px white, 0 0 5px white;
@@ -75,12 +70,6 @@
             font-size: 12px;
             font-weight: bold;
             white-space: nowrap;
-            position: absolute;
-            transform: translate(10px, -25px);
-        }
-        .custom-div-icon {
-            display: flex;
-            align-items: flex-start;
         }
     </style>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -110,6 +99,24 @@
 
         updateDateTime();
         setInterval(updateDateTime, 60000);
+
+        // Ajouter des étiquettes de texte pour chaque établissement
+        function addLabel(lat, lon, labelText) {
+            L.marker([lat, lon], {
+                icon: L.divIcon({
+                    className: 'school-label',
+                    html: `<div>${labelText}</div>`,
+                    iconSize: null,
+                    iconAnchor: [0, 0]
+                })
+            }).addTo(map);
+        }
+
+        addLabel(25.648591068705205, -100.0856852033863, 'CECYTE');
+        addLabel(25.63792851629281, -100.04780921128857, 'UTBFM');
+        addLabel(25.64946065968687, -100.0733161251606, 'CONALEP');
+        addLabel(25.64517418001307, -100.08823920605757, 'Preparatoria 22 UANL');
+        addLabel(25.604540659906498, -100.10462623465052, 'UNIDAD ACADEMICA JUAREZ UANL');
 
         var markers = {};
         function updateMarker(lat, lon, busNumber) {
@@ -142,52 +149,6 @@
                 }).addTo(map);
             }
         }
-
-        // Ajouter des marqueurs avec étiquettes permanentes pour chaque établissement
-        var customMarker1 = L.marker([25.648591068705205, -100.0856852033863], {
-            icon: L.divIcon({
-                className: 'custom-div-icon',
-                html: '<div><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png" style="width:25px; height:41px;"><div class="school-label">CECYTE</div></div>',
-                iconSize: [50, 41],
-                iconAnchor: [12, 41]
-            })
-        }).addTo(map);
-
-        var customMarker2 = L.marker([25.63792851629281, -100.04780921128857], {
-            icon: L.divIcon({
-                className: 'custom-div-icon',
-                html: '<div><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png" style="width:25px; height:41px;"><div class="school-label">UTBFM</div></div>',
-                iconSize: [50, 41],
-                iconAnchor: [12, 41]
-            })
-        }).addTo(map);
-
-        var customMarker3 = L.marker([25.64946065968687, -100.0733161251606], {
-            icon: L.divIcon({
-                className: 'custom-div-icon',
-                html: '<div><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png" style="width:25px; height:41px;"><div class="school-label">CONALEP</div></div>',
-                iconSize: [50, 41],
-                iconAnchor: [12, 41]
-            })
-        }).addTo(map);
-
-        var customMarker4 = L.marker([25.64517418001307, -100.08823920605757], {
-            icon: L.divIcon({
-                className: 'custom-div-icon',
-                html: '<div><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png" style="width:25px; height:41px;"><div class="school-label">Preparatoria 22 UANL</div></div>',
-                iconSize: [100, 41],
-                iconAnchor: [12, 41]
-            })
-        }).addTo(map);
-
-        var customMarker5 = L.marker([25.604540659906498, -100.10462623465052], {
-            icon: L.divIcon({
-                className: 'custom-div-icon',
-                html: '<div><img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png" style="width:25px; height:41px;"><div class="school-label">UNIDAD ACADEMICA JUAREZ UANL</div></div>',
-                iconSize: [150, 41],
-                iconAnchor: [12, 41]
-            })
-        }).addTo(map);
 
         async function fetchGPSData() {
             try {
