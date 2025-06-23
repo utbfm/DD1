@@ -38,7 +38,7 @@
         }
         #datetime {
             position: absolute;
-            top: 100px; /* Ajustez cette valeur pour positionner au-dessus des contrôles de zoom */
+            top: 100px;
             right: 10px;
             background: rgba(255, 255, 255, 0.7);
             padding: 5px 10px;
@@ -48,7 +48,7 @@
         }
         .leaflet-control-zoom {
             position: relative;
-            top: 130px; /* Ajustez cette valeur pour déplacer les boutons vers le bas */
+            top: 130px;
         }
         #footer {
             position: absolute;
@@ -78,19 +78,14 @@
     <script>
         function updateDateTime() {
             const now = new Date();
-            const options = {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            };
-        const dateTimeStr = now.toLocaleDateString('es-ES', options)
-            .replace(/\//g, '/') // Assure que le format est jj/mm/aaaa
-            .replace(/(\d+)\s*:\s*(\d+)/, '$1:$2'); // Formate l'heure correctement
-        document.getElementById('datetime').textContent = dateTimeStr;
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+
+            const dateTimeStr = `${day}/${month}/${year} ${hours}:${minutes}`;
+            document.getElementById('datetime').textContent = dateTimeStr;
         }
 
         var map = L.map('map').setView([25.64444583803593, -100.11268839018297], 12);
@@ -99,7 +94,7 @@
         }).addTo(map);
 
         updateDateTime();
-        setInterval(updateDateTime, 60000); // Mettre à jour chaque minute
+        setInterval(updateDateTime, 60000);
 
         var markers = {};
         function updateMarker(lat, lon, busNumber) {
