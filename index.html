@@ -97,18 +97,19 @@
         setInterval(updateDateTime, 60000);
 
         // Ajouter un symbole pour un établissement scolaire
-        function addSchoolSymbol(lat, lon, labelText) {
-            L.marker([lat, lon], {
-                icon: L.divIcon({
-                    html: `<img src="https://cdn-icons-png.flaticon.com/512/3292/3292435.png" style="width: 30px; height: 30px;">`,
-                    iconSize: [30, 30],
-                    className: 'custom-div-icon'
-                })
-            }).addTo(map).bindPopup(labelText);
-        }
+       function addSchoolSymbol(lat, lon, symbolText, labelText) {
+    L.marker([lat, lon], {
+        icon: L.divIcon({
+            html: `<div style="font-size: 24px;">${symbolText}</div>`,
+            iconSize: null,
+            className: 'custom-div-icon'
+        })
+    }).addTo(map).bindPopup(labelText);
+}
 
-        // Ajouter un symbole pour l'établissement scolaire à l'emplacement spécifié
-        addSchoolSymbol(25.638750679469254, -100.04770192131838, 'Établissement Scolaire');
+// Ajouter un symbole pour l'UTBFM
+addSchoolSymbol(25.63792851629281, -100.04780921128857, '🎓', 'UTBFM');
+
 
         var markers = {};
         function updateMarker(lat, lon, busNumber) {
