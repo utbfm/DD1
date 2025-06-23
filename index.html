@@ -96,27 +96,26 @@
         updateDateTime();
         setInterval(updateDateTime, 60000);
 
+        // Fonction addSchoolSymbol avec taille fixe à 14 px
         function addSchoolSymbol(lat, lon, symbolText, labelText) {
+            const size = 14;
             L.marker([lat, lon], {
                 icon: L.divIcon({
-                    html: `<div style="font-size: 20px;">${symbolText}</div>`,
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12],
+                    html: `<div style="font-size: ${size}px;">${symbolText}</div>`,
+                    iconSize: [size, size],
+                    iconAnchor: [size / 2, size / 2],
                     className: 'custom-div-icon'
                 })
             }).addTo(map).bindPopup(labelText);
         }
 
+        // Ajout des symboles école
         addSchoolSymbol(25.63792851629281, -100.04780921128857, '🎓', 'UTBFM');
         addSchoolSymbol(25.649170044873816, -100.0731744270799, '🎓', 'CONALEP');
         addSchoolSymbol(25.64790911216649, -100.08567360597452, '🎓', 'CECYTE');
         addSchoolSymbol(25.6451092046172, -100.08807434460095, '🎓', 'Preparatoria 22');
         addSchoolSymbol(25.604463257832606, -100.10461550597647, '🎓', 'Unidad Académica');
 
-
-
-
-        
         var markers = {};
         function updateMarker(lat, lon, busNumber) {
             const coords = [lat, lon];
