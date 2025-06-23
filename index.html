@@ -62,14 +62,10 @@
             text-align: right;
             z-index: 1000;
         }
-        .school-label {
+        .bus-label {
             color: black;
-            text-shadow: 0 0 3px white, 0 0 5px white;
-            padding: 2px 6px;
-            font-family: Arial, sans-serif;
-            font-size: 12px;
             font-weight: bold;
-            white-space: nowrap;
+            text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
         }
     </style>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -99,23 +95,6 @@
 
         updateDateTime();
         setInterval(updateDateTime, 60000);
-
-        // Ajouter des symboles pour chaque établissement
-        function addSymbol(lat, lon, symbolText, labelText) {
-            L.marker([lat, lon], {
-                icon: L.divIcon({
-                    html: `<div style="font-size: 24px; color: orange;">${symbolText}</div>`,
-                    iconSize: null,
-                    className: 'custom-div-icon'
-                })
-            }).addTo(map).bindPopup(labelText);
-        }
-25.652305517173904, -100.08530262502084
-        addSymbol(25.652305517173904, -100.08530262502084, '★', 'CECYTE');
-        addSymbol25.63932172613452, -100.04774795030018, '★', 'UTBFM');
-        addSymbol(25.65266120230755, -100.07259917010721, '★', 'CONALEP');
-        addSymbol(25.64517418001307, -100.08823920605757, '★', 'Preparatoria 22 UANL');
-        addSymbol(25.604540659906498, -100.10462623465052, '★', 'UNIDAD ACADEMICA JUAREZ UANL');
 
         var markers = {};
         function updateMarker(lat, lon, busNumber) {
