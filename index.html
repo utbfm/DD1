@@ -87,8 +87,10 @@
                 minute: '2-digit',
                 hour12: false
             };
-            const dateTimeStr = now.toLocaleDateString('es-ES', options);
-            document.getElementById('datetime').textContent = dateTimeStr;
+        const dateTimeStr = now.toLocaleDateString('es-ES', options)
+            .replace(/\//g, '/') // Assure que le format est jj/mm/aaaa
+            .replace(/(\d+)\s*:\s*(\d+)/, '$1:$2'); // Formate l'heure correctement
+        document.getElementById('datetime').textContent = dateTimeStr;
         }
 
         var map = L.map('map').setView([25.64444583803593, -100.11268839018297], 12);
