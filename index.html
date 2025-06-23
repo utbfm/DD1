@@ -96,9 +96,9 @@
         updateDateTime();
         setInterval(updateDateTime, 60000);
 
-        // Fonction addSchoolSymbol avec taille fixe à 14 px
+        // Fonction addSchoolSymbol avec taille fixe à 18 px
         function addSchoolSymbol(lat, lon, symbolText, labelText) {
-            const size = 14;
+            const size = 18;
             L.marker([lat, lon], {
                 icon: L.divIcon({
                     html: `<div style="font-size: ${size}px;">${symbolText}</div>`,
