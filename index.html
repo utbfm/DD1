@@ -100,32 +100,22 @@
         updateDateTime();
         setInterval(updateDateTime, 60000);
 
-        // Ajouter des étiquettes de texte pour chaque établissement
-        function addLabel(lat, lon, labelText) {
+        // Ajouter des symboles pour chaque établissement
+        function addSymbol(lat, lon, symbolText, labelText) {
             L.marker([lat, lon], {
                 icon: L.divIcon({
-                    className: 'school-label',
-                    html: `<div>${labelText}</div>`,
+                    html: `<div style="font-size: 24px; color: orange;">${symbolText}</div>`,
                     iconSize: null,
-                    iconAnchor: [0, 0]
+                    className: 'custom-div-icon'
                 })
-            }).addTo(map);
+            }).addTo(map).bindPopup(labelText);
         }
 
-        // Ajouter un symbole pour l'UTBFM
-        var utbfmLocation = [25.63792851629281, -100.04780921128857];
-        L.marker(utbfmLocation, {
-            icon: L.divIcon({
-                html: `<div style="font-size: 24px; color: orange;">★</div>`,
-                iconSize: null,
-                className: 'custom-div-icon'
-            })
-        }).addTo(map).bindPopup('UTBFM');
-
-        addLabel(25.648591068705205, -100.0856852033863, 'CECYTE');
-        addLabel(25.64946065968687, -100.0733161251606, 'CONALEP');
-        addLabel(25.64517418001307, -100.08823920605757, 'Preparatoria 22 UANL');
-        addLabel(25.604540659906498, -100.10462623465052, 'UNIDAD ACADEMICA JUAREZ UANL');
+        addSymbol(25.648591068705205, -100.0856852033863, '★', 'CECYTE');
+        addSymbol(25.63792851629281, -100.04780921128857, '★', 'UTBFM');
+        addSymbol(25.64946065968687, -100.0733161251606, '★', 'CONALEP');
+        addSymbol(25.64517418001307, -100.08823920605757, '★', 'Preparatoria 22 UANL');
+        addSymbol(25.604540659906498, -100.10462623465052, '★', 'UNIDAD ACADEMICA JUAREZ UANL');
 
         var markers = {};
         function updateMarker(lat, lon, busNumber) {
