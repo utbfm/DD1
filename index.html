@@ -93,12 +93,6 @@
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Ajouter un marqueur pour l'UTBFM
-        var utbfmLocation = [25.6500, -100.1000]; // Remplacez par les coordonnées réelles de l'UTBFM
-        L.marker(utbfmLocation).addTo(map)
-            .bindPopup('UTBFM')
-            .openPopup();
-
         updateDateTime();
         setInterval(updateDateTime, 60000);
 
