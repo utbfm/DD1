@@ -11,17 +11,24 @@
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
         }
+
         #map {
-            flex-grow: 1;
+            height: 100%;
             width: 100%;
-            min-height: 300px;
         }
+
         .leaflet-control-attribution {
             display: none !important;
         }
+
+        .leaflet-control-zoom {
+            position: absolute;
+            top: 130px;
+            right: 10px;
+            z-index: 2000;
+        }
+
         #header {
             position: absolute;
             top: 0;
@@ -36,22 +43,16 @@
             font-weight: bold;
             z-index: 1000;
         }
+
         #datetime {
             position: absolute;
-            top: 100px;
+            top: 80px;
             left: 10px;
             background: rgba(255, 255, 255, 0.7);
             padding: 5px 10px;
             border-radius: 5px;
             z-index: 1000;
             font-weight: bold;
-        }
-
-        .leaflet-control-zoom {
-            position: absolute;
-            top: 120px;
-            right: 10px;
-            z-index: 1100;
         }
 
         #footer {
@@ -66,6 +67,7 @@
             text-align: right;
             z-index: 1000;
         }
+
         .bus-label {
             color: black;
             font-weight: bold;
@@ -87,14 +89,17 @@
             const year = now.getFullYear();
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
-
             const dateTimeStr = `${day}/${month}/${year} ${hours}:${minutes}`;
             document.getElementById('datetime').textContent = dateTimeStr;
         }
 
-        var map = L.map('map').setView([25.64444583803593, -100.11268839018297], 13);
+        // Initialisation de la carte AVEC zoom activé
+        var map = L.map('map', {
+            zoomControl: true
+        }).setView([25.64444583803593, -100.11268839018297], 12);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
         updateDateTime();
@@ -121,7 +126,7 @@
         function updateMarker(lat, lon, busNumber) {
             const coords = [lat, lon];
             let markerColor = 'blue';
-            switch(busNumber) {
+            switch (busNumber) {
                 case '1': markerColor = 'blue'; break;
                 case '2': markerColor = 'red'; break;
                 case '3': markerColor = 'green'; break;
@@ -132,6 +137,7 @@
                 case '8': markerColor = 'gold'; break;
                 default: markerColor = 'blue';
             }
+
             if (markers[busNumber]) {
                 markers[busNumber].setLatLng(coords);
             } else {
@@ -141,7 +147,7 @@
                         html: `<div style="position: relative; text-align: center;">
                                 <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png" style="width: 25px; height: 41px;">
                                 <span class="bus-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">${busNumber}</span>
-                              </div>`,
+                               </div>`,
                         iconSize: [25, 41],
                         iconAnchor: [12, 41]
                     })
@@ -161,6 +167,7 @@
                 if (lines.length < 2) {
                     throw new Error('No data available in the CSV');
                 }
+
                 lines.slice(1).forEach(line => {
                     const [, , ligne, busNumber, lat, lon] = line.split(',');
                     const latitude = parseFloat(lat);
