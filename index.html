@@ -1,98 +1,162 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Carte avec Zoom</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      font-family: Arial, sans-serif;
-    }
-
-    #map {
-      height: 100vh;
-      width: 100%;
-      position: relative;
-      z-index: 1;
-    }
-
-    #header, #footer, #datetime {
-      position: absolute;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-    }
-
-    #header {
-      top: 0;
-      background: #FE8304;
-      color: black;
-      padding: 20px;
-      text-align: center;
-      font-size: 24px;
-      font-weight: bold;
-    }
-
-    #footer {
-      bottom: 0;
-      background-color: #FE8304;
-      padding: 20px;
-      color: white;
-      font-weight: bold;
-      text-align: right;
-    }
-
-    #datetime {
-      top: 70px;
-      left: 10px;
-      width: max-content;
-      background: rgba(255, 255, 255, 0.8);
-      padding: 5px 10px;
-      border-radius: 5px;
-      font-weight: bold;
-    }
-
-    .leaflet-control-attribution {
-      display: none !important;
-    }
-
-    .bus-label {
-      color: black;
-      font-weight: bold;
-      text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
-    }
-  </style>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Carte OpenStreetMap avec points GPS dynamiques</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+        #map {
+            flex-grow: 1;
+            width: 100%;
+            min-height: 300px;
+        }
+        .leaflet-control-attribution {
+            display: none !important;
+        }
+        #header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #FE8304;
+            color: black;
+            padding: 20px;
+            margin: 0;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        #datetime {
+            position: absolute;
+            top: 100px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            font-weight: bold;
+        }
+        .leaflet-control-zoom {
+            position: relative;
+            top: 130px;
+        }
+        #footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #FE8304;
+            padding: 20px;
+            color: white;
+            font-weight: bold;
+            text-align: right;
+            z-index: 1000;
+        }
+        .bus-label {
+            color: black;
+            font-weight: bold;
+            text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
+        }
+    </style>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
-  <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR</div>
-  <div id="datetime"></div>
-  <div id="map"></div>
-  <div id="footer">© 2025 UTBFM Juárez N.L.</div>
+    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR</div>
+    <div id="datetime"></div>
+    <div id="map"></div>
+    <div id="footer">© 2025 UTBFM Juárez N.L.</div>
+    <script>
+        function updateDateTime() {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
 
-  <script>
-    function updateDateTime() {
-      const now = new Date();
-      const day = String(now.getDate()).padStart(2, '0');
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const year = now.getFullYear();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const dateTimeStr = `${day}/${month}/${year} ${hours}:${minutes}`;
-      document.getElementById('datetime').textContent = dateTimeStr;
-    }
+            const dateTimeStr = `${day}/${month}/${year} ${hours}:${minutes}`;
+            document.getElementById('datetime').textContent = dateTimeStr;
+        }
 
-    var map = L.map('map').setView([25.64444583803593, -100.11268839018297], 12);
+        var map = L.map('map').setView([25.64444583803593, -100.11268839018297], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
 
-    updateDateTime();
-    setInterval(updateDateTime, 60000);
-  </script>
+        var markers = {};
+        function updateMarker(lat, lon, busNumber) {
+            const coords = [lat, lon];
+            let markerColor = 'blue';
+            switch(busNumber) {
+                case '1': markerColor = 'blue'; break;
+                case '2': markerColor = 'red'; break;
+                case '3': markerColor = 'green'; break;
+                case '4': markerColor = 'orange'; break;
+                case '5': markerColor = 'black'; break;
+                case '6': markerColor = 'yellow'; break;
+                case '7': markerColor = 'black'; break;
+                case '8': markerColor = 'gold'; break;
+                default: markerColor = 'blue';
+            }
+            if (markers[busNumber]) {
+                markers[busNumber].setLatLng(coords);
+            } else {
+                markers[busNumber] = L.marker(coords, {
+                    icon: L.divIcon({
+                        className: 'bus-icon',
+                        html: `<div style="position: relative; text-align: center;">
+                                <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png" style="width: 25px; height: 41px;">
+                                <span class="bus-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">${busNumber}</span>
+                              </div>`,
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41]
+                    })
+                }).addTo(map);
+            }
+        }
+
+        async function fetchGPSData() {
+            try {
+                const sheetUrl = 'https://docs.google.com/spreadsheets/d/1xeSWq6sbovDTeI8z0vh1rECMWoNwLBJNcYWf9-fitSM/export?format=csv&gid=40563606';
+                const response = await fetch(sheetUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                const text = await response.text();
+                const lines = text.trim().split('\n');
+                if (lines.length < 2) {
+                    throw new Error('No data available in the CSV');
+                }
+                lines.slice(1).forEach(line => {
+                    const [, , ligne, busNumber, lat, lon] = line.split(',');
+                    const latitude = parseFloat(lat);
+                    const longitude = parseFloat(lon);
+                    if (!isNaN(latitude) && !isNaN(longitude)) {
+                        updateMarker(latitude, longitude, busNumber);
+                    } else {
+                        console.warn('Invalid GPS coordinates:', line);
+                    }
+                });
+            } catch (err) {
+                console.error('Error fetching GPS coordinates:', err);
+            }
+        }
+
+        fetchGPSData();
+        setInterval(fetchGPSData, 1000);
+    </script>
 </body>
 </html>
