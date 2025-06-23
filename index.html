@@ -99,9 +99,9 @@
         function addSchoolSymbol(lat, lon, symbolText, labelText) {
             L.marker([lat, lon], {
                 icon: L.divIcon({
-                    html: `<div style="font-size: 24px;">${symbolText}</div>`,
-                    iconSize: [14, 14],
-                    iconAnchor: [7, 7],
+                    html: `<div style="font-size: 20px;">${symbolText}</div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12],
                     className: 'custom-div-icon'
                 })
             }).addTo(map).bindPopup(labelText);
