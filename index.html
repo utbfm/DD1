@@ -96,6 +96,20 @@
         updateDateTime();
         setInterval(updateDateTime, 60000);
 
+        // Ajouter un symbole pour un établissement scolaire
+        function addSymbol(lat, lon, symbolText, labelText) {
+            L.marker([lat, lon], {
+                icon: L.divIcon({
+                    html: `<div style="font-size: 24px; color: orange;">${symbolText}</div>`,
+                    iconSize: null,
+                    className: 'custom-div-icon'
+                })
+            }).addTo(map).bindPopup(labelText);
+        }
+
+        // Ajouter un symbole pour l'établissement scolaire à l'emplacement spécifié
+        addSymbol(25.638750679469254, -100.04770192131838, '🏫', 'Établissement Scolaire');
+
         var markers = {};
         function updateMarker(lat, lon, busNumber) {
             const coords = [lat, lon];
