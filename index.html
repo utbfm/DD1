@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <style>
-        /* Les styles restent inchangés */
         html, body {
             height: 100%;
             margin: 0;
@@ -93,7 +92,7 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 </head>
 <body>
-    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L. 2025</div>
+    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L. 25</div>
     <div id="datetime"></div>
     <div id="distance-info">
         <div>🚌 Bus 1 → 🎓 Unidad Académica</div>
@@ -181,7 +180,14 @@
             [25.638644282181144, -100.0475409887724]
         ];
 
-        // Créer le routing
+        // Ajouter le tracé orange complet
+        L.polyline(routeWaypoints, {
+            color: '#FE8304',
+            weight: 5,
+            opacity: 0.8
+        }).addTo(map);
+
+        // Créer le contrôle de routage pour le calcul de distance
         routingControl = L.Routing.control({
             waypoints: [
                 L.latLng(25.638644282181144, -100.0475409887724),
@@ -192,9 +198,9 @@
             createMarker: function() { return null; },
             lineOptions: {
                 styles: [{
-                    color: '#FE8304',
-                    weight: 5,
-                    opacity: 0.8
+                    color: 'transparent',
+                    weight: 0,
+                    opacity: 0
                 }]
             },
             router: L.Routing.osrmv1({
@@ -261,26 +267,9 @@
                 }).addTo(map);
             }
 
-            // Mettre à jour la position du Bus 1 et la ligne de distance
+            // Mettre à jour la position du Bus 1
             if (busNumber === '1') {
                 bus1Position = { lat: lat, lon: lon };
-
-                // Supprimer l'ancienne ligne
-                if (distanceLine) {
-                    map.removeLayer(distanceLine);
-                }
-
-                // Créer une nouvelle ligne de distance
-                distanceLine = L.polyline([
-                    [lat, lon],
-                    [unidadAcademica.lat, unidadAcademica.lon]
-                ], {
-                    color: 'red',
-                    weight: 3,
-                    opacity: 0.7,
-                    dashArray: '10, 10'
-                }).addTo(map);
-
                 updateDistanceDisplay();
             }
         }
