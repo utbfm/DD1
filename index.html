@@ -60,6 +60,17 @@
             font-size: 16px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
+        #debug-info {
+            position: absolute;
+            top: 220px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            font-size: 12px;
+            max-width: 300px;
+        }
         .leaflet-control-zoom {
             position: relative;
             top: 180px;
@@ -92,12 +103,13 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 </head>
 <body>
-    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L. 2025</div>
+    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L.</div>
     <div id="datetime"></div>
     <div id="distance-info">
         <div>🚌 Bus 1 → 🎓 Unidad Académica</div>
-        <div id="distance-display">Calcul en cours...</div>
+        <div id="distance-display">En attente des données GPS...</div>
     </div>
+    <div id="debug-info"></div>
     <div id="map"></div>
     <div id="footer">© 2025 UTBFM Juárez N.L.</div>
     <script>
@@ -110,6 +122,9 @@
         // Variable pour stocker la position actuelle du Bus 1
         let bus1Position = null;
         let currentRoutingControl = null;
+        let isCalculating = false;
+        let lastCalculationTime = 0;
+        let calculationAttempts = 0;
 
         function updateDateTime() {
             const now = new Date();
@@ -123,22 +138,85 @@
             document.getElementById('datetime').textContent = dateTimeStr;
         }
 
-        // Fonction pour calculer la distance réelle via les routes
+        function updateDebugInfo(message) {
+            const debugElement = document.getElementById('debug-info');
+            const timestamp = new Date().toLocaleTimeString();
+            debugElement.innerHTML = `[${timestamp}] ${message}`;
+        }
+
+        // Fonction pour calculer la distance à vol d'oiseau (fallback)
+        function calculateStraightLineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Rayon de la Terre en km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Fonction pour calculer la distance réelle via les routes avec retry et fallback
         async function calculateRealDistance(fromLat, fromLon, toLat, toLon) {
+            const now = Date.now();
+            
+            // Éviter de faire trop de calculs simultanés
+            if (isCalculating || (now - lastCalculationTime) < 2000) {
+                return null;
+            }
+            
+            isCalculating = true;
+            lastCalculationTime = now;
+            calculationAttempts++;
+
             try {
+                updateDebugInfo(`Tentative ${calculationAttempts}: Calcul de route...`);
+                
                 const url = `https://router.project-osrm.org/route/v1/driving/${fromLon},${fromLat};${toLon},${toLat}?overview=full&geometries=geojson`;
-                const response = await fetch(url);
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000); // Timeout de 8 secondes
+                
+                const response = await fetch(url, {
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
                 
                 if (data.routes && data.routes.length > 0) {
                     const distance = data.routes[0].distance / 1000; // Convertir en kilomètres
                     const duration = data.routes[0].duration / 60; // Convertir en minutes
+                    updateDebugInfo(`✅ Route calculée: ${distance.toFixed(2)}km`);
                     return { distance, duration, route: data.routes[0] };
+                } else {
+                    throw new Error('Aucune route trouvée dans la réponse OSRM');
                 }
-                return null;
             } catch (error) {
-                console.error('Erreur lors du calcul de la route:', error);
-                return null;
+                console.error('Erreur OSRM:', error);
+                updateDebugInfo(`❌ Erreur OSRM: ${error.message}`);
+                
+                // Fallback: utiliser la distance à vol d'oiseau
+                const straightDistance = calculateStraightLineDistance(fromLat, fromLon, toLat, toLon);
+                const estimatedDuration = (straightDistance / 50) * 60; // Estimation: 50 km/h moyenne
+                
+                updateDebugInfo(`🔄 Fallback: Distance directe ${straightDistance.toFixed(2)}km`);
+                
+                return { 
+                    distance: straightDistance * 1.3, // Coefficient pour approximer la route
+                    duration: estimatedDuration * 1.5, // Coefficient pour les arrêts/circulation
+                    isFallback: true 
+                };
+            } finally {
+                isCalculating = false;
             }
         }
 
@@ -146,39 +224,54 @@
         async function updateDistanceDisplay() {
             const distanceElement = document.getElementById('distance-display');
             
-            if (bus1Position) {
-                distanceElement.innerHTML = '🔄 Calcul en cours...';
+            if (!bus1Position) {
+                distanceElement.innerHTML = '❓ Bus 1 non localisé';
+                updateDebugInfo('❓ Position Bus 1 non disponible');
+                return;
+            }
+            
+            // Vérifier la validité des coordonnées
+            if (isNaN(bus1Position.lat) || isNaN(bus1Position.lon) || 
+                bus1Position.lat === 0 || bus1Position.lon === 0) {
+                distanceElement.innerHTML = '❌ Coordonnées GPS invalides';
+                updateDebugInfo('❌ Coordonnées GPS invalides');
+                return;
+            }
+            
+            distanceElement.innerHTML = '🔄 Calcul en cours...';
+            
+            const routeInfo = await calculateRealDistance(
+                bus1Position.lat, 
+                bus1Position.lon, 
+                unidadAcademica.lat, 
+                unidadAcademica.lon
+            );
+            
+            if (routeInfo) {
+                const { distance, duration, isFallback } = routeInfo;
                 
-                const routeInfo = await calculateRealDistance(
-                    bus1Position.lat, 
-                    bus1Position.lon, 
-                    unidadAcademica.lat, 
-                    unidadAcademica.lon
-                );
-                
-                if (routeInfo) {
-                    const { distance, duration } = routeInfo;
-                    
-                    if (distance < 1) {
-                        distanceElement.innerHTML = `🚗 ${(distance * 1000).toFixed(0)}m<br>⏱️ ${duration.toFixed(0)} min`;
-                    } else {
-                        distanceElement.innerHTML = `🚗 ${distance.toFixed(2)} km<br>⏱️ ${duration.toFixed(0)} min`;
-                    }
-                    
-                    // Changer la couleur selon la proximité
-                    const infoDiv = document.getElementById('distance-info');
-                    if (distance < 0.5) {
-                        infoDiv.style.backgroundColor = 'rgba(34, 139, 34, 0.9)'; // Vert si proche
-                    } else if (distance < 2) {
-                        infoDiv.style.backgroundColor = 'rgba(255, 165, 0, 0.9)'; // Orange si moyen
-                    } else {
-                        infoDiv.style.backgroundColor = 'rgba(30, 144, 255, 0.9)'; // Bleu si loin
-                    }
+                let distanceText;
+                if (distance < 1) {
+                    distanceText = `🚗 ${(distance * 1000).toFixed(0)}m`;
                 } else {
-                    distanceElement.innerHTML = '❌ Erreur calcul';
+                    distanceText = `🚗 ${distance.toFixed(2)} km`;
+                }
+                
+                const fallbackIcon = isFallback ? ' (📏)' : '';
+                distanceElement.innerHTML = `${distanceText}${fallbackIcon}<br>⏱️ ${duration.toFixed(0)} min`;
+                
+                // Changer la couleur selon la proximité
+                const infoDiv = document.getElementById('distance-info');
+                if (distance < 0.5) {
+                    infoDiv.style.backgroundColor = 'rgba(34, 139, 34, 0.9)'; // Vert si proche
+                } else if (distance < 2) {
+                    infoDiv.style.backgroundColor = 'rgba(255, 165, 0, 0.9)'; // Orange si moyen
+                } else {
+                    infoDiv.style.backgroundColor = 'rgba(30, 144, 255, 0.9)'; // Bleu si loin
                 }
             } else {
-                distanceElement.textContent = 'Bus 1 non localisé';
+                distanceElement.innerHTML = '⏳ Calcul différé...';
+                updateDebugInfo('⏳ Calcul reporté (limite de fréquence)');
             }
         }
 
@@ -282,9 +375,17 @@
 
             // Mettre à jour la position du Bus 1 et calculer la route réelle
             if (busNumber === '1') {
+                const oldPosition = bus1Position;
                 bus1Position = { lat: lat, lon: lon };
-                updateRealRoute();
-                updateDistanceDisplay();
+                
+                // Ne recalculer que si la position a vraiment changé
+                if (!oldPosition || 
+                    Math.abs(oldPosition.lat - lat) > 0.0001 || 
+                    Math.abs(oldPosition.lon - lon) > 0.0001) {
+                    
+                    updateRealRoute();
+                    setTimeout(() => updateDistanceDisplay(), 500); // Délai pour éviter la surcharge
+                }
             }
         }
 
@@ -305,7 +406,7 @@
                     unidadAcademica.lon
                 );
 
-                if (routeInfo && routeInfo.route.geometry) {
+                if (routeInfo && routeInfo.route && routeInfo.route.geometry) {
                     // Créer une nouvelle polyligne avec la géométrie de la route
                     const coordinates = routeInfo.route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
                     
@@ -317,19 +418,41 @@
                     }).addTo(map);
 
                     // Ajouter un popup avec les informations de la route
+                    const fallbackText = routeInfo.isFallback ? ' (approximative)' : '';
                     distanceRoute.bindPopup(
                         `<b>🚌 Bus 1 → 🎓 Unidad Académica</b><br>
-                         📏 Distance: ${routeInfo.distance.toFixed(2)} km<br>
+                         📏 Distance: ${routeInfo.distance.toFixed(2)} km${fallbackText}<br>
                          ⏱️ Temps estimé: ${routeInfo.duration.toFixed(0)} min`
+                    );
+                } else if (routeInfo && routeInfo.isFallback) {
+                    // Créer une ligne droite si c'est un fallback
+                    distanceRoute = L.polyline([
+                        [bus1Position.lat, bus1Position.lon],
+                        [unidadAcademica.lat, unidadAcademica.lon]
+                    ], {
+                        color: '#FF69B4',
+                        weight: 3,
+                        opacity: 0.6,
+                        dashArray: '5, 10'
+                    }).addTo(map);
+
+                    distanceRoute.bindPopup(
+                        `<b>🚌 Bus 1 → 🎓 Unidad Académica</b><br>
+                         📏 Distance estimée: ${routeInfo.distance.toFixed(2)} km<br>
+                         ⏱️ Temps estimé: ${routeInfo.duration.toFixed(0)} min<br>
+                         <small>⚠️ Estimation (problème de routage)</small>`
                     );
                 }
             } catch (error) {
                 console.error('Erreur lors de la création de la route:', error);
+                updateDebugInfo(`❌ Erreur route: ${error.message}`);
             }
         }
 
         async function fetchGPSData() {
             try {
+                updateDebugInfo('📡 Récupération données GPS...');
+                
                 const sheetUrl = 'https://docs.google.com/spreadsheets/d/1xeSWq6sbovDTeI8z0vh1rECMWoNwLBJNcYWf9-fitSM/export?format=csv&gid=40563606';
 
                 const response = await fetch(sheetUrl);
@@ -341,23 +464,38 @@
                 if (lines.length < 2) {
                     throw new Error('No data available in the CSV');
                 }
+                
+                let bus1Found = false;
                 lines.slice(1).forEach(line => {
                     const [, , ligne, busNumber, lat, lon] = line.split(',');
                     const latitude = parseFloat(lat);
                     const longitude = parseFloat(lon);
-                    if (!isNaN(latitude) && !isNaN(longitude)) {
+                    if (!isNaN(latitude) && !isNaN(longitude) && latitude !== 0 && longitude !== 0) {
                         updateMarker(latitude, longitude, busNumber);
+                        if (busNumber === '1') {
+                            bus1Found = true;
+                        }
                     } else {
                         console.warn('Invalid GPS coordinates:', line);
                     }
                 });
+                
+                if (!bus1Found) {
+                    updateDebugInfo('⚠️ Bus 1 non trouvé dans les données');
+                } else {
+                    updateDebugInfo('✅ Données GPS récupérées');
+                }
+                
             } catch (err) {
                 console.error('Error fetching GPS coordinates:', err);
+                updateDebugInfo(`❌ Erreur GPS: ${err.message}`);
             }
         }
 
+        // Démarrage initial
+        updateDebugInfo('🚀 Initialisation du système...');
         fetchGPSData();
-        setInterval(fetchGPSData, 1000);
+        setInterval(fetchGPSData, 5000); // Réduit à 5 secondes pour éviter la surcharge
     </script>
 </body>
 </html>
