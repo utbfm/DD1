@@ -1,319 +1,148 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Carte OpenStreetMap avec calcul de distance en temps réel</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-        }
-        #map {
-            flex-grow: 1;
-            width: 100%;
-            min-height: 300px;
-        }
-        .leaflet-control-attribution {
-            display: none !important;
-        }
-        #header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #FE8304;
-            color: black;
-            padding: 20px;
-            margin: 0;
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-            z-index: 1000;
-        }
-        #datetime {
-            position: absolute;
-            top: 100px;
-            left: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 5px 10px;
-            border-radius: 5px;
-            z-index: 1000;
-            font-weight: bold;
-        }
-        #distance-info {
-            position: absolute;
-            top: 140px;
-            left: 10px;
-            background: rgba(30, 144, 255, 0.9);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            z-index: 1000;
-            font-weight: bold;
-            font-size: 16px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        .leaflet-control-zoom {
-            position: relative;
-            top: 180px;
-        }
-        #footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: #FE8304;
-            padding: 20px;
-            color: white;
-            font-weight: bold;
-            text-align: right;
-            z-index: 1000;
-        }
-        .bus-label {
-            color: black;
-            font-weight: bold;
-            text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
-        }
-        .leaflet-routing-container {
-            display: none !important;
-        }
-        .leaflet-routing-container-hide {
-            display: none !important;
-        }
-    </style>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-</head>
-<body>
-    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L. 25</div>
-    <div id="datetime"></div>
-    <div id="distance-info">
-        <div>🚌 Bus 1 → 🎓 Unidad Académica</div>
-        <div id="distance-display">Calcul en cours...</div>
-    </div>
-    <div id="map"></div>
-    <div id="footer">© 2025 UTBFM Juárez N.L.</div>
-    <script>
-        // Coordonnées de la Unidad Académica
-        const unidadAcademica = {
-            lat: 25.604463257832606,
-            lon: -100.10461550597647
-        };
-        // Variable pour stocker la position actuelle du Bus 1
-        let bus1Position = null;
-        let lastDistance = null;
+function calculateWaitingTimeUnidadAcademica() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Définir l'arrêt Unidad Académica
+  var unidadAcademica = {
+    name: "Unidad Academica", 
+    lat: 25.604463, 
+    lng: -100.104616, 
+    routeIndex: 52
+  };
 
-        function updateDateTime() {
-            const now = new Date();
-            const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const year = now.getFullYear();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const dateTimeStr = `${day}/${month}/${year} ${hours}:${minutes}`;
-            document.getElementById('datetime').textContent = dateTimeStr;
-        }
+  // Paramètres du parcours
+  var totalRoutePoints = 137;
+  var intervalPerPoint = 5; // 5 secondes par point
+  
+  // Récupérer les données du bus 1 de la ligne EscolarJuarez
+  var busSheet = sheet.getSheetByName("EscolarJuarez");
+  if (!busSheet) {
+    console.log("Feuille EscolarJuarez non trouvée");
+    return "Erreur: Feuille non trouvée";
+  }
 
-        // Fonction pour calculer la distance euclidienne entre deux points GPS
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Rayon de la Terre en kilomètres
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const distance = R * c;
-            return distance;
-        }
+  var busData = busSheet.getRange(2, 1, busSheet.getLastRow() - 1, 6).getValues();
+  
+  var bus1Data = null;
+  // Chercher le bus 1 dans les données
+  for (var i = 0; i < busData.length; i++) {
+    if (busData[i][2] === "EscolarJuarez" && busData[i][3] == "1") {
+      bus1Data = busData[i];
+      break;
+    }
+  }
+  
+  if (!bus1Data) {
+    console.log("Bus 1 non trouvé dans les données");
+    return "Bus 1 non trouvé";
+  }
+  
+  var busLat = bus1Data[4];
+  var busLng = bus1Data[5];
+  
+  // Trouver la position actuelle du bus dans le parcours
+  var currentBusIndex = findNearestRouteIndex(busLat, busLng);
+  
+  // Calculer la distance jusqu'à l'arrêt Unidad Académica
+  var distanceToStop;
+  if (currentBusIndex <= unidadAcademica.routeIndex) {
+    // Le bus n'a pas encore atteint l'arrêt
+    distanceToStop = unidadAcademica.routeIndex - currentBusIndex;
+  } else {
+    // Le bus a dépassé l'arrêt, il reviendra au tour suivant
+    distanceToStop = (totalRoutePoints - currentBusIndex) + unidadAcademica.routeIndex;
+  }
+  
+  var waitTimeSeconds = distanceToStop * intervalPerPoint;
+  var waitTimeMinutes = waitTimeSeconds / 60;
+  
+  // Formatter le temps d'attente
+  var waitTimeFormatted;
+  if (waitTimeMinutes < 1) {
+    waitTimeFormatted = Math.round(waitTimeMinutes * 60) + " secondes";
+  } else {
+    waitTimeFormatted = Math.round(waitTimeMinutes * 10) / 10 + " minutes";
+  }
+  
+  // Informations de debug
+  var debugInfo = {
+    busPosition: "Index " + currentBusIndex + " sur le parcours",
+    busCoordinates: "Lat: " + busLat + ", Lng: " + busLng,
+    stopPosition: "Index " + unidadAcademica.routeIndex + " sur le parcours",
+    distance: distanceToStop + " points",
+    waitTime: waitTimeFormatted
+  };
+  
+  console.log("=== CALCUL TEMPS D'ATTENTE ===");
+  console.log("Arrêt: " + unidadAcademica.name);
+  console.log("Bus: 1");
+  console.log("Position actuelle du bus: " + debugInfo.busPosition);
+  console.log("Coordonnées du bus: " + debugInfo.busCoordinates);
+  console.log("Position de l'arrêt: " + debugInfo.stopPosition);
+  console.log("Distance à parcourir: " + debugInfo.distance);
+  console.log("Temps d'attente estimé: " + debugInfo.waitTime);
+  
+  return {
+    arret: unidadAcademica.name,
+    bus: "Bus 1",
+    tempsAttente: waitTimeFormatted,
+    details: debugInfo
+  };
+}
 
-        // Fonction pour mettre à jour l'affichage de la distance
-        function updateDistanceDisplay() {
-            const distanceElement = document.getElementById('distance-display');
-            if (bus1Position) {
-                const distance = calculateDistance(
-                    bus1Position.lat,
-                    bus1Position.lon,
-                    unidadAcademica.lat,
-                    unidadAcademica.lon
-                );
-                if (lastDistance === null || distance < lastDistance) {
-                    if (distance < 1) {
-                        distanceElement.innerHTML = `📍 ${(distance * 1000).toFixed(0)} mètres`;
-                    } else {
-                        distanceElement.innerHTML = `📍 ${distance.toFixed(2)} km`;
-                    }
-                } else {
-                    distanceElement.innerHTML = "En attente";
-                }
-                lastDistance = distance;
-                // Changer la couleur selon la proximité
-                const infoDiv = document.getElementById('distance-info');
-                if (distance < 0.5) {
-                    infoDiv.style.backgroundColor = 'rgba(34, 139, 34, 0.9)'; // Vert si proche
-                } else if (distance < 2) {
-                    infoDiv.style.backgroundColor = 'rgba(255, 165, 0, 0.9)'; // Orange si moyen
-                } else {
-                    infoDiv.style.backgroundColor = 'rgba(30, 144, 255, 0.9)'; // Bleu si loin
-                }
-            } else {
-                distanceElement.textContent = 'Bus 1 non localisé';
-            }
-        }
+// Fonction pour obtenir juste le temps d'attente sous forme de texte
+function getWaitTimeUnidadAcademicaBus1() {
+  var result = calculateWaitingTimeUnidadAcademica();
+  if (typeof result === "string") {
+    return result; // Retourner l'erreur
+  }
+  return "Temps d'attente à " + result.arret + " pour le " + result.bus + ": " + result.tempsAttente;
+}
 
-        var map = L.map('map').setView([25.64107090227007, -100.10760242812114], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        updateDateTime();
-        setInterval(updateDateTime, 60000);
-
-        // Coordonnées du parcours
-        const routeWaypoints = [
-            [25.638644282181144, -100.0475409887724],
-            [25.654749, -100.080438],
-            [25.607503998585404, -100.10864886050213],
-            [25.605035024895496, -100.1042575447634],
-            [25.607796258248268, -100.10862309738039],
-            [25.64927836995617, -100.15838094226125],
-            [25.648294977423287, -100.1469773788279],
-            [25.618786, -100.106485],
-            [25.638644282181144, -100.0475409887724]
-        ];
-
-        // Créer le routing
-        const routingControl = L.Routing.control({
-            waypoints: routeWaypoints.map(coord => L.latLng(coord[0], coord[1])),
-            routeWhileDragging: false,
-            addWaypoints: false,
-            createMarker: function() { return null; },
-            lineOptions: {
-                styles: [{
-                    color: '#FE8304',
-                    weight: 5,
-                    opacity: 0.8
-                }]
-            },
-            router: L.Routing.osrmv1({
-                serviceUrl: 'https://router.project-osrm.org/route/v1'
-            }),
-            show: false,
-            collapsible: false
-        }).addTo(map);
-
-        routingControl.hide();
-
-        // Fonction pour ajouter les symboles école
-        function addSchoolSymbol(lat, lon, symbolText, labelText) {
-            const size = 18;
-            L.marker([lat, lon], {
-                icon: L.divIcon({
-                    html: `<div style="font-size: ${size}px;">${symbolText}</div>`,
-                    iconSize: [size, size],
-                    iconAnchor: [size / 2, size / 2],
-                    className: 'custom-div-icon'
-                })
-            }).addTo(map).bindPopup(labelText);
-        }
-
-        // Ajout des symboles école
-        addSchoolSymbol(25.63792851629281, -100.04780921128857, '🎓', 'UTBFM');
-        addSchoolSymbol(25.649170044873816, -100.0731744270799, '🎓', 'CONALEP');
-        addSchoolSymbol(25.64790911216649, -100.08567360597452, '🎓', 'CECYTE');
-        addSchoolSymbol(25.6451092046172, -100.08807434460095, '🎓', 'Preparatoria 22');
-        addSchoolSymbol(25.604463257832606, -100.10461550597647, '🎓', 'Unidad Académica');
-
-        // Ligne de distance dynamique
-        let distanceLine = null;
-        var markers = {};
-
-        function updateMarker(lat, lon, busNumber) {
-            const coords = [lat, lon];
-            let markerColor = 'blue';
-            switch(busNumber) {
-                case '1': markerColor = 'blue'; break;
-                case '2': markerColor = 'red'; break;
-                case '3': markerColor = 'green'; break;
-                case '4': markerColor = 'orange'; break;
-                case '5': markerColor = 'black'; break;
-                case '6': markerColor = 'yellow'; break;
-                case '7': markerColor = 'black'; break;
-                case '8': markerColor = 'gold'; break;
-                default: markerColor = 'blue';
-            }
-            if (markers[busNumber]) {
-                markers[busNumber].setLatLng(coords);
-            } else {
-                markers[busNumber] = L.marker(coords, {
-                    icon: L.divIcon({
-                        className: 'bus-icon',
-                        html: `<div style="position: relative; text-align: center;">
-                                <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png" style="width: 25px; height: 41px;">
-                                <span class="bus-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">${busNumber}</span>
-                              </div>`,
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41]
-                    })
-                }).addTo(map);
-            }
-            // Mettre à jour la position du Bus 1 et la ligne de distance
-            if (busNumber === '1') {
-                bus1Position = { lat: lat, lon: lon };
-                // Supprimer l'ancienne ligne
-                if (distanceLine) {
-                    map.removeLayer(distanceLine);
-                }
-                // Créer une nouvelle ligne de distance
-                distanceLine = L.polyline([
-                    [lat, lon],
-                    [unidadAcademica.lat, unidadAcademica.lon]
-                ], {
-                    color: 'red',
-                    weight: 3,
-                    opacity: 0.7,
-                    dashArray: '10, 10'
-                }).addTo(map);
-            }
-        }
-
-        async function fetchGPSData() {
-            try {
-                const sheetUrl = 'https://docs.google.com/spreadsheets/d/1xeSWq6sbovDTeI8z0vh1rECMWoNwLBJNcYWf9-fitSM/export?format=csv&gid=40563606';
-                const response = await fetch(sheetUrl);
-                if (!response.ok) {
-                    throw new Error(`HTTP error: ${response.status}`);
-                }
-                const text = await response.text();
-                const lines = text.trim().split('\n');
-                if (lines.length < 2) {
-                    throw new Error('No data available in the CSV');
-                }
-                lines.slice(1).forEach(line => {
-                    const [, , ligne, busNumber, lat, lon] = line.split(',');
-                    const latitude = parseFloat(lat);
-                    const longitude = parseFloat(lon);
-                    if (!isNaN(latitude) && !isNaN(longitude)) {
-                        updateMarker(latitude, longitude, busNumber);
-                    } else {
-                        console.warn('Invalid GPS coordinates:', line);
-                    }
-                });
-            } catch (err) {
-                console.error('Error fetching GPS coordinates:', err);
-            }
-        }
-
-        fetchGPSData();
-        setInterval(fetchGPSData, 1000);
-        setInterval(updateDistanceDisplay, 1000);
-    </script>
-</body>
-</html>
+// Fonction pour mettre à jour uniquement cette information dans une feuille
+function updateUnidadAcademicaWaitTime() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  var result = calculateWaitingTimeUnidadAcademica();
+  
+  if (typeof result === "string") {
+    console.log("Erreur: " + result);
+    return;
+  }
+  
+  // Créer ou obtenir une feuille spécifique pour cette information
+  var waitSheet = sheet.getSheetByName("ATTENTE_UNIDAD_ACADEMICA");
+  if (!waitSheet) {
+    waitSheet = sheet.insertSheet("ATTENTE_UNIDAD_ACADEMICA");
+    // En-têtes
+    waitSheet.getRange(1, 1, 1, 4).setValues([["Arrêt", "Bus", "Temps d'Attente", "Dernière MAJ"]]);
+    waitSheet.getRange(1, 1, 1, 4).setFontWeight("bold");
+    waitSheet.getRange(1, 1, 1, 4).setBackground("#FE8304");
+    waitSheet.getRange(1, 1, 1, 4).setFontColor("white");
+  }
+  
+  var now = new Date();
+  var currentTime = Utilities.formatDate(now, "GMT-6", "HH:mm:ss dd/MM/yyyy");
+  
+  // Mettre à jour les données
+  waitSheet.getRange(2, 1, 1, 4).setValues([[
+    result.arret,
+    result.bus,
+    result.tempsAttente,
+    currentTime
+  ]]);
+  
+  // Formatage conditionnel
+  var waitTimeCell = waitSheet.getRange(2, 3);
+  var timeText = result.tempsAttente;
+  
+  if (timeText.includes("seconde") || (timeText.includes("minute") && parseFloat(timeText) <= 2)) {
+    waitTimeCell.setBackground("#d4edda").setFontColor("#155724"); // Vert - imminent
+  } else if (timeText.includes("minute") && parseFloat(timeText) <= 5) {
+    waitTimeCell.setBackground("#fff3cd").setFontColor("#856404"); // Jaune - bientôt
+  } else {
+    waitTimeCell.setBackground("#f8d7da").setFontColor("#721c24"); // Rouge - longue attente
+  }
+  
+  waitSheet.autoResizeColumns(1, 4);
+  
+  console.log("Feuille mise à jour avec: " + result.tempsAttente);
+}
