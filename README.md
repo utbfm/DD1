@@ -1,1 +1,237 @@
-# DD1
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Carte OpenStreetMap avec points GPS dynamiques</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+        #map {
+            flex-grow: 1;
+            width: 100%;
+            min-height: 300px;
+        }
+        .leaflet-control-attribution {
+            display: none !important;
+        }
+        #header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #FE8304;
+            color: black;
+            padding: 20px;
+            margin: 0;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        #datetime {
+            position: absolute;
+            top: 100px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            font-weight: bold;
+        }
+        .leaflet-control-zoom {
+            position: relative;
+            top: 130px;
+        }
+        #footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #FE8304;
+            padding: 20px;
+            color: white;
+            font-weight: bold;
+            text-align: right;
+            z-index: 1000;
+        }
+        .bus-label {
+            color: black;
+            font-weight: bold;
+            text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
+        }
+        .leaflet-routing-container {
+            display: none !important;
+        }
+        .leaflet-routing-container-hide {
+            display: none !important;
+        }
+    </style>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+</head>
+<body>
+    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L.</div>
+    <div id="datetime"></div>
+    <div id="map"></div>
+    <div id="footer">© 2025 UTBFM Juárez N.L.</div>
+    <script>
+        function updateDateTime() {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+
+            const dateTimeStr = `${day}/${month}/${year} ${hours}:${minutes}`;
+            document.getElementById('datetime').textContent = dateTimeStr;
+        }
+
+        var map = L.map('map').setView([25.64107090227007, -100.10760242812114], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
+
+        // Coordonnées du parcours - sélectionner les points principaux pour le routing
+        const routeWaypoints = [
+            [25.638644282181144, -100.0475409887724], // Point de départ
+           // [25.649262, -100.071203], // Point intermédiaire 1
+            [25.654749, -100.080438], // Point intermédiaire 2
+            //[25.640644, -100.091747], // Point intermédiaire 3
+            //[25.609489, -100.111838], // Point intermédiaire 4
+           // [25.605035024895496, -100.1042575447634],
+            [25.607503998585404, -100.10864886050213],
+            [25.605035024895496, -100.1042575447634], //
+            [25.607796258248268, -100.10862309738039],
+          //  [25.619479, -100.109219], // Point intermédiaire 5
+          //  [25.637124, -100.142468], // Point intermédiaire 6
+          //  [25.640158, -100.152249], // Point le plus éloigné
+            //[25.647728, -100.145264], // Point de retour 1
+            [25.64927836995617, -100.15838094226125],
+            [25.648294977423287, -100.1469773788279],
+          //  [25.635797, -100.138627], // Point de retour 2
+           // [25.620442, -100.112237], // Point de retour 3
+            [25.618786, -100.106485], // Point de retour 4
+            [25.638644282181144, -100.0475409887724]  // Retour au point de départ
+        ];
+
+        // Créer le routing qui suit les rues
+        const routingControl = L.Routing.control({
+            waypoints: routeWaypoints.map(coord => L.latLng(coord[0], coord[1])),
+            routeWhileDragging: false,
+            addWaypoints: false,
+            createMarker: function() { return null; }, // Pas de marqueurs pour les waypoints
+            lineOptions: {
+                styles: [{
+                    color: '#FE8304',
+                    weight: 5,
+                    opacity: 0.8
+                }]
+            },
+            router: L.Routing.osrmv1({
+                serviceUrl: 'https://router.project-osrm.org/route/v1'
+            }),
+            show: false,
+            collapsible: false
+        }).addTo(map);
+
+        // Masquer le panneau de contrôle
+        routingControl.hide();
+
+        // Fonction addSchoolSymbol avec taille fixe à 18 px
+        function addSchoolSymbol(lat, lon, symbolText, labelText) {
+            const size = 18;
+            L.marker([lat, lon], {
+                icon: L.divIcon({
+                    html: `<div style="font-size: ${size}px;">${symbolText}</div>`,
+                    iconSize: [size, size],
+                    iconAnchor: [size / 2, size / 2],
+                    className: 'custom-div-icon'
+                })
+            }).addTo(map).bindPopup(labelText);
+        }
+
+        // Ajout des symboles école
+        addSchoolSymbol(25.63792851629281, -100.04780921128857, '🎓', 'UTBFM');
+        addSchoolSymbol(25.649170044873816, -100.0731744270799, '🎓', 'CONALEP');
+        addSchoolSymbol(25.64790911216649, -100.08567360597452, '🎓', 'CECYTE');
+        addSchoolSymbol(25.6451092046172, -100.08807434460095, '🎓', 'Preparatoria 22');
+        addSchoolSymbol(25.604463257832606, -100.10461550597647, '🎓', 'Unidad Académica');
+
+        var markers = {};
+        function updateMarker(lat, lon, busNumber) {
+            const coords = [lat, lon];
+            let markerColor = 'blue';
+            switch(busNumber) {
+                case '1': markerColor = 'blue'; break;
+                case '2': markerColor = 'red'; break;
+                case '3': markerColor = 'green'; break;
+                case '4': markerColor = 'orange'; break;
+                case '5': markerColor = 'black'; break;
+                case '6': markerColor = 'yellow'; break;
+                case '7': markerColor = 'black'; break;
+                case '8': markerColor = 'gold'; break;
+                default: markerColor = 'blue';
+            }
+            if (markers[busNumber]) {
+                markers[busNumber].setLatLng(coords);
+            } else {
+                markers[busNumber] = L.marker(coords, {
+                    icon: L.divIcon({
+                        className: 'bus-icon',
+                        html: `<div style="position: relative; text-align: center;">
+                                <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png" style="width: 25px; height: 41px;">
+                                <span class="bus-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">${busNumber}</span>
+                              </div>`,
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41]
+                    })
+                }).addTo(map);
+            }
+        }
+
+        async function fetchGPSData() {
+            try {
+                const sheetUrl = 'https://docs.google.com/spreadsheets/d/1xeSWq6sbovDTeI8z0vh1rECMWoNwLBJNcYWf9-fitSM/export?format=csv&gid=40563606';
+
+                const response = await fetch(sheetUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                const text = await response.text();
+                const lines = text.trim().split('\n');
+                if (lines.length < 2) {
+                    throw new Error('No data available in the CSV');
+                }
+                lines.slice(1).forEach(line => {
+                    const [, , ligne, busNumber, lat, lon] = line.split(',');
+                    const latitude = parseFloat(lat);
+                    const longitude = parseFloat(lon);
+                    if (!isNaN(latitude) && !isNaN(longitude)) {
+                        updateMarker(latitude, longitude, busNumber);
+                    } else {
+                        console.warn('Invalid GPS coordinates:', line);
+                    }
+                });
+            } catch (err) {
+                console.error('Error fetching GPS coordinates:', err);
+            }
+        }
+
+        fetchGPSData();
+        setInterval(fetchGPSData, 1000);
+    </script>
+</body>
+</html>
