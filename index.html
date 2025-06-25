@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <style>
+        /* Les styles restent inchangés */
         html, body {
             height: 100%;
             margin: 0;
@@ -92,7 +93,7 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 </head>
 <body>
-    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L.</div>
+    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L. 2025</div>
     <div id="datetime"></div>
     <div id="distance-info">
         <div>🚌 Bus 1 → 🎓 Unidad Académica</div>
@@ -109,6 +110,7 @@
 
         // Variable pour stocker la position actuelle du Bus 1
         let bus1Position = null;
+        let lastDistance = null;
 
         function updateDateTime() {
             const now = new Date();
@@ -117,7 +119,6 @@
             const year = now.getFullYear();
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
-
             const dateTimeStr = `${day}/${month}/${year} ${hours}:${minutes}`;
             document.getElementById('datetime').textContent = dateTimeStr;
         }
@@ -138,21 +139,27 @@
         // Fonction pour mettre à jour l'affichage de la distance
         function updateDistanceDisplay() {
             const distanceElement = document.getElementById('distance-display');
-            
+
             if (bus1Position) {
                 const distance = calculateDistance(
-                    bus1Position.lat, 
-                    bus1Position.lon, 
-                    unidadAcademica.lat, 
+                    bus1Position.lat,
+                    bus1Position.lon,
+                    unidadAcademica.lat,
                     unidadAcademica.lon
                 );
-                
-                if (distance < 1) {
-                    distanceElement.innerHTML = `📍 ${(distance * 1000).toFixed(0)} mètres`;
+
+                if (lastDistance === null || distance < lastDistance) {
+                    if (distance < 1) {
+                        distanceElement.innerHTML = `📍 ${(distance * 1000).toFixed(0)} mètres`;
+                    } else {
+                        distanceElement.innerHTML = `📍 ${distance.toFixed(2)} km`;
+                    }
                 } else {
-                    distanceElement.innerHTML = `📍 ${distance.toFixed(2)} km`;
+                    distanceElement.innerHTML = "En attente";
                 }
-                
+
+                lastDistance = distance;
+
                 // Changer la couleur selon la proximité
                 const infoDiv = document.getElementById('distance-info');
                 if (distance < 0.5) {
@@ -232,8 +239,8 @@
 
         // Ligne de distance dynamique
         let distanceLine = null;
-
         var markers = {};
+
         function updateMarker(lat, lon, busNumber) {
             const coords = [lat, lon];
             let markerColor = 'blue';
@@ -248,7 +255,7 @@
                 case '8': markerColor = 'gold'; break;
                 default: markerColor = 'blue';
             }
-            
+
             if (markers[busNumber]) {
                 markers[busNumber].setLatLng(coords);
             } else {
@@ -268,12 +275,12 @@
             // Mettre à jour la position du Bus 1 et la ligne de distance
             if (busNumber === '1') {
                 bus1Position = { lat: lat, lon: lon };
-                
+
                 // Supprimer l'ancienne ligne
                 if (distanceLine) {
                     map.removeLayer(distanceLine);
                 }
-                
+
                 // Créer une nouvelle ligne de distance
                 distanceLine = L.polyline([
                     [lat, lon],
@@ -284,7 +291,7 @@
                     opacity: 0.7,
                     dashArray: '10, 10'
                 }).addTo(map);
-                
+
                 updateDistanceDisplay();
             }
         }
@@ -292,7 +299,6 @@
         async function fetchGPSData() {
             try {
                 const sheetUrl = 'https://docs.google.com/spreadsheets/d/1xeSWq6sbovDTeI8z0vh1rECMWoNwLBJNcYWf9-fitSM/export?format=csv&gid=40563606';
-
                 const response = await fetch(sheetUrl);
                 if (!response.ok) {
                     throw new Error(`HTTP error: ${response.status}`);
