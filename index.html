@@ -88,7 +88,7 @@
 <body>
   <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L. 2025</div>
   <div id="datetime"></div>
-  <div id="eta">Calcul en cours…</div>
+  <div id="eta"></div>
   <div id="map"></div>
   <div id="footer">© 2025 UTBFM Juárez N.L.</div>
 
@@ -190,37 +190,8 @@
       }
     }
 
-    let routingControlETA = null;
-
-    function estimerTempsArrivee(busLatLng, arretLatLng, busNumber) {
-      if (routingControlETA) {
-        routingControlETA.setWaypoints([busLatLng, arretLatLng]);
-        return;
-      }
-
-      routingControlETA = L.Routing.control({
-        waypoints: [busLatLng, arretLatLng],
-        router: L.Routing.osrmv1({
-          serviceUrl: 'https://router.project-osrm.org/route/v1'
-        }),
-        addWaypoints: false,
-        createMarker: () => null,
-        lineOptions: { styles: [{ color: 'gray', opacity: 0 }] },
-        routeWhileDragging: false,
-        fitSelectedRoutes: false
-      })
-      .on('routesfound', function(e) {
-        const route = e.routes[0];
-        const dureeSecondes = route.summary.totalTime;
-        const minutes = Math.round(dureeSecondes / 60);
-        const message = (minutes <= 1) ? "Votre bus arrive" : `${minutes} min`;
-        document.getElementById('eta').textContent = `🚌 Bus ${busNumber} → Unidad Académica : ${message}`;
-      })
-      .on('routingerror', function() {
-        document.getElementById('eta').textContent = `Erreur lors du calcul du trajet du bus ${busNumber}`;
-      })
-      .addTo(map);
-    }
+    // Suppression de l'estimation du temps d'arrivée : 
+    // La fonction estimerTempsArrivee et son appel sont supprimés
 
     async function fetchGPSData() {
       try {
@@ -237,11 +208,7 @@
           const longitude = parseFloat(lon);
           if (!isNaN(latitude) && !isNaN(longitude)) {
             updateMarker(latitude, longitude, busNumber);
-            if (busNumber === '1') {
-              const busPos = L.latLng(latitude, longitude);
-              const arretUnidad = L.latLng(25.604463257832606, -100.10461550597647);
-              estimerTempsArrivee(busPos, arretUnidad, busNumber);
-            }
+            // Plus d'appel à estimerTempsArrivee ici
           } else {
             console.warn('Invalid GPS coordinates:', line);
           }
