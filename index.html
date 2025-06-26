@@ -64,9 +64,10 @@
             z-index: 1000;
         }
         .bus-label {
-            color: black;
+            color: white;
             font-weight: bold;
-            text-shadow: 1px 1px white, -1px -1px white, 1px -1px white, -1px 1px white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            font-size: 12px;
         }
         .leaflet-routing-container {
             display: none !important;
@@ -74,12 +75,22 @@
         .leaflet-routing-container-hide {
             display: none !important;
         }
+        .bus-arrow {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
     </style>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 </head>
 <body>
-    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L. NIMES</div>
+    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L.</div>
     <div id="datetime"></div>
     <div id="map"></div>
     <div id="footer">© 2025 UTBFM Juárez N.L.</div>
@@ -107,22 +118,12 @@
         // Coordonnées du parcours - sélectionner les points principaux pour le routing
         const routeWaypoints = [
             [25.638644282181144, -100.0475409887724], // Point de départ
-           // [25.649262, -100.071203], // Point intermédiaire 1
             [25.654749, -100.080438], // Point intermédiaire 2
-            //[25.640644, -100.091747], // Point intermédiaire 3
-            //[25.609489, -100.111838], // Point intermédiaire 4
-           // [25.605035024895496, -100.1042575447634],
             [25.607503998585404, -100.10864886050213],
             [25.605035024895496, -100.1042575447634], //
             [25.607796258248268, -100.10862309738039],
-          //  [25.619479, -100.109219], // Point intermédiaire 5
-          //  [25.637124, -100.142468], // Point intermédiaire 6
-          //  [25.640158, -100.152249], // Point le plus éloigné
-            //[25.647728, -100.145264], // Point de retour 1
             [25.64927836995617, -100.15838094226125],
             [25.648294977423287, -100.1469773788279],
-          //  [25.635797, -100.138627], // Point de retour 2
-           // [25.620442, -100.112237], // Point de retour 3
             [25.618786, -100.106485], // Point de retour 4
             [25.638644282181144, -100.0475409887724]  // Retour au point de départ
         ];
@@ -171,35 +172,73 @@
         addSchoolSymbol(25.604463257832606, -100.10461550597647, '🎓', 'Unidad Académica');
 
         var markers = {};
+        var previousPositions = {}; // Stocker les positions précédentes pour calculer la direction
+
+        // Fonction pour calculer l'angle entre deux points
+        function calculateBearing(lat1, lon1, lat2, lon2) {
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const lat1Rad = lat1 * Math.PI / 180;
+            const lat2Rad = lat2 * Math.PI / 180;
+            
+            const y = Math.sin(dLon) * Math.cos(lat2Rad);
+            const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+            
+            let bearing = Math.atan2(y, x) * 180 / Math.PI;
+            return (bearing + 360) % 360; // Normaliser entre 0 et 360
+        }
+
         function updateMarker(lat, lon, busNumber) {
             const coords = [lat, lon];
             let markerColor = 'blue';
-            switch(busNumber) {
-                case '1': markerColor = 'blue'; break;
-                case '2': markerColor = 'red'; break;
-                case '3': markerColor = 'green'; break;
-                case '4': markerColor = 'orange'; break;
-                case '5': markerColor = 'black'; break;
-                case '6': markerColor = 'yellow'; break;
-                case '7': markerColor = 'black'; break;
-                case '8': markerColor = 'gold'; break;
-                default: markerColor = 'blue';
+            
+            // Couleurs pour chaque bus
+            const busColors = {
+                '1': '#0066CC', // Bleu
+                '2': '#CC0000', // Rouge
+                '3': '#00CC00', // Vert
+                '4': '#FF6600', // Orange
+                '5': '#333333', // Noir
+                '6': '#CCCC00', // Jaune
+                '7': '#663399', // Violet
+                '8': '#FF9900'  // Orange doré
+            };
+            
+            markerColor = busColors[busNumber] || '#0066CC';
+            
+            // Calculer la direction si on a une position précédente
+            let rotation = 0;
+            if (previousPositions[busNumber]) {
+                const prevLat = previousPositions[busNumber].lat;
+                const prevLon = previousPositions[busNumber].lon;
+                rotation = calculateBearing(prevLat, prevLon, lat, lon);
             }
+            
+            // Créer l'icône flèche avec rotation
+            const arrowIcon = L.divIcon({
+                className: 'bus-arrow-icon',
+                html: `<div class="bus-arrow" style="background-color: ${markerColor}; transform: rotate(${rotation}deg);">
+                        <div style="color: white; font-size: 16px; font-weight: bold; transform: rotate(${-rotation}deg);">
+                            ↑
+                        </div>
+                        <div class="bus-label" style="position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); background: ${markerColor}; padding: 2px 6px; border-radius: 10px; font-size: 11px;">
+                            Bus ${busNumber}
+                        </div>
+                      </div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+            
             if (markers[busNumber]) {
                 markers[busNumber].setLatLng(coords);
+                markers[busNumber].setIcon(arrowIcon);
             } else {
                 markers[busNumber] = L.marker(coords, {
-                    icon: L.divIcon({
-                        className: 'bus-icon',
-                        html: `<div style="position: relative; text-align: center;">
-                                <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png" style="width: 25px; height: 41px;">
-                                <span class="bus-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">${busNumber}</span>
-                              </div>`,
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41]
-                    })
+                    icon: arrowIcon
                 }).addTo(map);
             }
+            
+            // Mettre à jour la position précédente
+            previousPositions[busNumber] = { lat: lat, lon: lon };
         }
 
         async function fetchGPSData() {
