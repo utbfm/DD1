@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carte avec calcul d'itinéraire</title>
+    <title>Carte avec temps d'attente des bus</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <style>
@@ -77,7 +77,7 @@
     </style>
 </head>
 <body>
-    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L.</div>
+    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L. NIMES</div>
     <div id="datetime"></div>
     <div id="map"></div>
     <div id="footer">© 2025 UTBFM Juárez N.L.</div>
@@ -135,16 +135,8 @@
 
         routingControl.hide();
 
-        routingControl.on('routesfound', function(e) {
-            const routes = e.routes;
-            const summary = routes[0].summary;
-            const totalDistance = summary.totalDistance;
-            console.log('Total distance:', totalDistance, 'meters');
-            alert('Total distance: ' + totalDistance + ' meters');
-        });
-
         function addSchoolSymbol(lat, lon, symbolText, labelText) {
-            const size = 20;
+            const size = 18;
             L.marker([lat, lon], {
                 icon: L.divIcon({
                     html: `<div style="font-size: ${size}px;">${symbolText}</div>`,
@@ -220,8 +212,42 @@
             }
         }
 
+        // Exemple de données de bus simulées
+        const busData = [
+            { id: '1', lat: 25.638644282181144, lon: -100.0475409887724, nextStops: ['UTBFM', 'CONALEP', 'CECYTE'] },
+            { id: '2', lat: 25.654749, lon: -100.080438, nextStops: ['Preparatoria 22', 'Unidad Académica'] }
+        ];
+
+        // Fonction pour calculer le temps d'attente estimé
+        function calculateWaitingTime(bus, stop) {
+            // Logique simplifiée pour estimer le temps d'attente
+            // Dans une application réelle, cela devrait être basé sur la position actuelle du bus, sa vitesse, etc.
+            return Math.floor(Math.random() * 15) + 1; // Temps d'attente aléatoire entre 1 et 15 minutes
+        }
+
+        // Mettre à jour les temps d'attente pour chaque arrêt
+        function updateWaitingTimes() {
+            const stops = {
+                'UTBFM': { lat: 25.63792851629281, lon: -100.04780921128857 },
+                'CONALEP': { lat: 25.649170044873816, lon: -100.0731744270799 },
+                'CECYTE': { lat: 25.64790911216649, lon: -100.08567360597452 },
+                'Preparatoria 22': { lat: 25.6451092046172, lon: -100.08807434460095 },
+                'Unidad Académica': { lat: 25.604463257832606, lon: -100.10461550597647 }
+            };
+
+            busData.forEach(bus => {
+                bus.nextStops.forEach(stop => {
+                    const waitingTime = calculateWaitingTime(bus, stop);
+                    const marker = L.marker([stops[stop].lat, stops[stop].lon]).addTo(map);
+                    marker.bindPopup(`Temps d'attente pour le bus ${bus.id}: ${waitingTime} minutes`).openPopup();
+                });
+            });
+        }
+
         fetchGPSData();
         setInterval(fetchGPSData, 1000);
+        updateWaitingTimes();
+        setInterval(updateWaitingTimes, 60000); // Mettre à jour les temps d'attente chaque minute
     </script>
 </body>
 </html>
