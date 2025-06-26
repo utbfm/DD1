@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Carte OpenStreetMap avec points GPS dynamiques</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte avec calcul d'itinéraire</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <style>
@@ -75,14 +75,15 @@
             display: none !important;
         }
     </style>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 </head>
 <body>
-    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L. NIMES</div>
+    <div id="header">SUPERVISIÓN DEL CIRCUITO ESCOLAR JUÁREZ N.L.</div>
     <div id="datetime"></div>
     <div id="map"></div>
     <div id="footer">© 2025 UTBFM Juárez N.L.</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     <script>
         function updateDateTime() {
             const now = new Date();
@@ -91,48 +92,33 @@
             const year = now.getFullYear();
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
-
             const dateTimeStr = `${day}/${month}/${year} ${hours}:${minutes}`;
             document.getElementById('datetime').textContent = dateTimeStr;
         }
 
         var map = L.map('map').setView([25.64107090227007, -100.10760242812114], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
         updateDateTime();
         setInterval(updateDateTime, 60000);
 
-        // Coordonnées du parcours - sélectionner les points principaux pour le routing
         const routeWaypoints = [
-            [25.638644282181144, -100.0475409887724], // Point de départ
-           // [25.649262, -100.071203], // Point intermédiaire 1
-            [25.654749, -100.080438], // Point intermédiaire 2
-            //[25.640644, -100.091747], // Point intermédiaire 3
-            //[25.609489, -100.111838], // Point intermédiaire 4
-           // [25.605035024895496, -100.1042575447634],
+            [25.638644282181144, -100.0475409887724],
+            [25.654749, -100.080438],
             [25.607503998585404, -100.10864886050213],
-            [25.605035024895496, -100.1042575447634], //
-            [25.607796258248268, -100.10862309738039],
-          //  [25.619479, -100.109219], // Point intermédiaire 5
-          //  [25.637124, -100.142468], // Point intermédiaire 6
-          //  [25.640158, -100.152249], // Point le plus éloigné
-            //[25.647728, -100.145264], // Point de retour 1
+            [25.605035024895496, -100.1042575447634],
             [25.64927836995617, -100.15838094226125],
-            [25.648294977423287, -100.1469773788279],
-          //  [25.635797, -100.138627], // Point de retour 2
-           // [25.620442, -100.112237], // Point de retour 3
-            [25.618786, -100.106485], // Point de retour 4
-            [25.638644282181144, -100.0475409887724]  // Retour au point de départ
+            [25.618786, -100.106485],
+            [25.638644282181144, -100.0475409887724]
         ];
 
-        // Créer le routing qui suit les rues
         const routingControl = L.Routing.control({
             waypoints: routeWaypoints.map(coord => L.latLng(coord[0], coord[1])),
             routeWhileDragging: false,
             addWaypoints: false,
-            createMarker: function() { return null; }, // Pas de marqueurs pour les waypoints
+            createMarker: function() { return null; },
             lineOptions: {
                 styles: [{
                     color: '#FE8304',
@@ -147,12 +133,18 @@
             collapsible: false
         }).addTo(map);
 
-        // Masquer le panneau de contrôle
         routingControl.hide();
 
-        // Fonction addSchoolSymbol avec taille fixe à 18 px
+        routingControl.on('routesfound', function(e) {
+            const routes = e.routes;
+            const summary = routes[0].summary;
+            const totalDistance = summary.totalDistance;
+            console.log('Total distance:', totalDistance, 'meters');
+            alert('Total distance: ' + totalDistance + ' meters');
+        });
+
         function addSchoolSymbol(lat, lon, symbolText, labelText) {
-            const size = 18;
+            const size = 20;
             L.marker([lat, lon], {
                 icon: L.divIcon({
                     html: `<div style="font-size: ${size}px;">${symbolText}</div>`,
@@ -163,7 +155,6 @@
             }).addTo(map).bindPopup(labelText);
         }
 
-        // Ajout des symboles école
         addSchoolSymbol(25.63792851629281, -100.04780921128857, '🎓', 'UTBFM');
         addSchoolSymbol(25.649170044873816, -100.0731744270799, '🎓', 'CONALEP');
         addSchoolSymbol(25.64790911216649, -100.08567360597452, '🎓', 'CECYTE');
@@ -205,7 +196,6 @@
         async function fetchGPSData() {
             try {
                 const sheetUrl = 'https://docs.google.com/spreadsheets/d/1xeSWq6sbovDTeI8z0vh1rECMWoNwLBJNcYWf9-fitSM/export?format=csv&gid=40563606';
-
                 const response = await fetch(sheetUrl);
                 if (!response.ok) {
                     throw new Error(`HTTP error: ${response.status}`);
